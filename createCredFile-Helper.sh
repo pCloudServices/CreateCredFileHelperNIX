@@ -18,7 +18,7 @@ NC='\033[0m'
 YELLOW='\033[0;33m'
 
 #github
-scriptVersion="1"               #update this locally and github.
+scriptVersion="2"               #update this locally and github.
 scriptFileName="createCredFile-Helper.sh" #update this locally
 masterBranch="https://raw.githubusercontent.com/pCloudServices/CreateCredFileHelperNIX/master"
 checkVersion="$masterBranch/Latest.txt" #update this in github
