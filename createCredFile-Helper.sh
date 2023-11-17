@@ -18,7 +18,7 @@ NC='\033[0m'
 YELLOW='\033[0;33m'
 
 #github
-scriptVersion="2"               #update this locally and github.
+scriptVersion="3"               #update this locally and github.
 scriptFileName="createCredFile-Helper.sh" #update this locally
 masterBranch="https://raw.githubusercontent.com/pCloudServices/CreateCredFileHelperNIX/master"
 checkVersion="$masterBranch/Latest.txt" #update this in github
@@ -119,7 +119,7 @@ pvwaSystemHealthUser() {
 check_dns_resolution() {
     local url="$1"
     local hostname
-    hostname=$(echo "$url" | grep -oP '^https?://\K[^/]+')	
+    hostname=$(echo "$url" | awk -F/ '{print $3}')
 	# Remove .privilegecloud from the hostname
     hostname=${hostname//.privilegecloud/}
 	
@@ -147,10 +147,18 @@ creds() {
 
 restart_services() {
     local serviceName="$1"
-    echo "***** Restarting $serviceName Service..."
-    systemctl daemon-reload
-    systemctl restart "${serviceName}.service"
-    systemctl status "${serviceName}.service"
+    # Check if the operating system is AIX
+    if [[ "$(uname -s)" == "AIX" ]]; then
+        echo "***** Restarting $serviceName Service on AIX..."
+        stopsrc -s ${serviceName}
+        startsrc -s ${serviceName}
+        lssrc -s ${serviceName}
+    else
+        echo "***** Restarting $serviceName Service on Linux..."
+        systemctl daemon-reload
+        systemctl restart "${serviceName}.service"
+        systemctl status "${serviceName}.service"
+    fi
     sleep 5
 }
 
@@ -171,10 +179,14 @@ extract_pvwaURL() {
 		# Remove trailing spaces
 		pvwaURL=$(echo "$pvwaURL" | sed 's/^[[:blank:]]*//;s/[[:blank:]]*$//')
 		# Check if it's not in IP format; we need it for API calls.
-		if [[ $pvwaURL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+		if echo "$pvwaURL" | awk '/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/'
+		then
+			read -r -p "Address is in IP format. Please enter the address in DNS format (example https://mikeb.cyberark.cloud): " pvwaURL
+		else
 			echo "Retrieved Address: $pvwaURL"
-			read -r -p "Address is in IP format. Please enter the address in DNS format (example https://mikeb.cyberark.cloud):" pvwaURL
 		fi
+
+
 		
 		# handle AIM since we grab vault address from vault.ini
 		if [[ $pvwaURL == vault-* ]]; then
