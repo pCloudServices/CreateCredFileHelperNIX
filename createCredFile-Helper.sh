@@ -17,38 +17,10 @@ PURPLE='\033[0;35m'
 NC='\033[0m'
 YELLOW='\033[0;33m'
 
-#github
-scriptVersion="3"               #update this locally and github.
-scriptFileName="createCredFile-Helper.sh" #update this locally
-masterBranch="https://raw.githubusercontent.com/pCloudServices/CreateCredFileHelperNIX/master"
-checkVersion="$masterBranch/Latest.txt" #update this in github
-newScriptVersion="$masterBranch/$scriptFileName"
+
+scriptVersion="4"               #update this locally and github.
 
 #Functions
-testGithubVersion() {
-    echo "***** Checking latest version on Github..."
-    echo "***** If this takes long time (DNS resolve), you can run the script with the flag -skip to skip this check...."
-    getVersion=$(curl --max-time 3 -s $checkVersion)
-
-    if [[ $getVersion ]]; then
-        echo "***** Script version is: $scriptVersion"
-        echo "***** Latest version is: $getVersion"
-        sleep 2
-    else
-        echo "***** Couldn't reach github to check for latest version, that's ok! skipping..."
-        sleep 2
-    fi
-    if [[ $getVersion -gt $scriptVersion ]]; then
-        echo "***** Found a newer version!"
-        echo "***** Replacing current script with newer script"
-        mv $0 $0.old #move current to old
-        echo "***** Downloading new version from Github"
-        curl -s $newScriptVersion -o $scriptFileName # -s hides output
-        chmod 755 $scriptFileName
-        echo "***** Done, relaunch the script."
-        exit 1
-    fi
-}
 
 # PVWA Calls
 pvwaLogin() {
@@ -128,7 +100,15 @@ check_dns_resolution() {
         echo -e "***** ${GREEN}Hostname ($hostname) resolved successfully.${NC}"
     else
         echo -e "${RED}Can't resolve hostname ($hostname). Please check DNS settings. Aborting...${NC}"
-        exit 1
+        read -r -p "**** Proceed anyway?: [Y/N]: " response
+		if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
+			echo "**** Chosen YES"
+			sleep 1
+		else
+			echo "**** Chosen NO, Exiting."
+			sleep 1
+			exit 1
+		fi
     fi
 }
 
@@ -333,22 +313,6 @@ echo "--------------------------------------------------------------"
 echo "----------- CyberArk CreateCredFile-Helper for NIX -----------"
 echo "----------- Script version "$scriptVersion" ---------------------------------"
 echo "--------------------------------------------------------------"
-
-# skip new version
-while test $# -gt 0; do
-    case "$1" in
-    -skip*)
-        testGithubVersion() { echo "***** Skipped online version check."; } #nullify the function so its not called out down the road.
-        shift
-        ;;
-    *)
-        # Placeholder for future flags
-        break
-        ;;
-    esac
-done
-# Get new version from github
-testGithubVersion
 
 declare -a components_found=()
 
